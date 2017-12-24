@@ -1,0 +1,2 @@
+ANDROID_NDK_ROOT=/opt/android-ndk-r14b/
+ARCH="arm"
