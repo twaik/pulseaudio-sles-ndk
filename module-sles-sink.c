@@ -246,16 +246,10 @@ static void process_render(struct userdata *u, pa_usec_t now) {
         (*u->bqPlayerBufferQueue)->Enqueue(u->bqPlayerBufferQueue, (uint8_t*) p + u->memchunk.index, u->memchunk.length);
         pa_memblock_release(u->memchunk.memblock);
 
-/*         pa_log_debug("Ate %lu bytes.", (unsigned long) chunk.length); */
         u->timestamp += pa_bytes_to_usec(u->memchunk.length, &u->sink->sample_spec);
-
         ate += u->memchunk.length;
-
-        if (ate >= u->sink->thread_info.max_request)
-            break;
+        if (ate >= u->sink->thread_info.max_request) break;
     }
-
-/*     pa_log_debug("Ate in sum %lu bytes (of %lu)", (unsigned long) ate, (unsigned long) nbytes); */
 }
 
 static void thread_func(void *userdata) {
@@ -344,7 +338,7 @@ int pa__init(pa_module*m) {
     pa_sink_new_data_set_name(&data, pa_modargs_get_value(ma, "sink_name", DEFAULT_SINK_NAME));
     pa_sink_new_data_set_sample_spec(&data, &ss);
     pa_sink_new_data_set_channel_map(&data, &map);
-    pa_proplist_sets(data.proplist, PA_PROP_DEVICE_DESCRIPTION, _("Null Output"));
+    pa_proplist_sets(data.proplist, PA_PROP_DEVICE_DESCRIPTION, _("OpenSL ES Output"));
     pa_proplist_sets(data.proplist, PA_PROP_DEVICE_CLASS, "abstract");
 
     if (pa_modargs_get_proplist(ma, "sink_properties", data.proplist, PA_UPDATE_REPLACE) < 0) {
@@ -373,7 +367,7 @@ int pa__init(pa_module*m) {
     pa_sink_set_max_rewind(u->sink, nbytes);
     pa_sink_set_max_request(u->sink, nbytes);
 
-    if (!(u->thread = pa_thread_new("null-sink", thread_func, u))) {
+    if (!(u->thread = pa_thread_new("sles-sink", thread_func, u))) {
         pa_log("Failed to create thread.");
         goto fail;
     }

@@ -3,7 +3,9 @@
 
 set -e
 
-. config
+if [ "${BUILD_CONFIG}" != "0" ] ; then
+	. config
+fi
 
 if [ "${TRACE}" == "1" ] ; then
 	set -x
@@ -30,7 +32,7 @@ LIBSNDFILE_VERSION=1.0.27
 PULSE_VERSION=v11.1
 
 if [ ! -e "ndk-$ARCH" ] ; then
-	"$ANDROID_NDK_ROOT"/build/tools/make_standalone_toolchain.py --arch="$ARCH" --install-dir="ndk-$ARCH" --api=15
+	"$ANDROID_NDK_ROOT"/build/tools/make_standalone_toolchain.py --arch="$ARCH" --install-dir="ndk-$ARCH" --api=21
 fi
 
 export BUILDROOT=$PWD
@@ -100,13 +102,19 @@ pushd pulseaudio
 #if ! git grep -q opensl ; then
 #	git am ../pulseaudio-patches/*
 #fi
-patch -p0 < ${BUILDROOT}/patches/000-pulseaudio.patch
+cp -f ${BUILDROOT}/module-sles-sink.c ${BUILDROOT}/pulseaudio/src/modules/
+if grep -q "module-sles-sink" ${BUILDROOT}/pulseaudio/src/Makefile.am; then
+    printf ""
+else
+	patch -p0 < ${BUILDROOT}/patches/000-pulseaudio.patch
+fi
 env NOCONFIGURE=1 bash -x ./bootstrap.sh
 #./autogen.sh
 popd
 
 mkdir -p "${BUILDROOT}/build-$ARCH/pulseaudio"
 pushd "${BUILDROOT}/build-$ARCH/pulseaudio"
+if [ ! -e ${BUILDROOT}/build-$ARCH/pulseaudio/config.log ]; then
 ${BUILDROOT}/pulseaudio/configure --host=${BUILDCHAIN} --prefix="${PREFIX}" \
 		--disable-static --enable-shared --disable-rpath --disable-nls --disable-x11 \
 		--disable-oss-wrapper --disable-alsa --disable-esound --disable-waveout \
@@ -117,5 +125,6 @@ ${BUILDROOT}/pulseaudio/configure --host=${BUILDCHAIN} --prefix="${PREFIX}" \
 		--disable-orc --without-caps --without-fftw --disable-systemd-daemon \
 		--disable-systemd-login --disable-systemd-journal --disable-webrtc-aec --disable-tests
 # --enable-static-bins
+fi
 make -j4
 make install
