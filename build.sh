@@ -32,7 +32,7 @@ LIBSNDFILE_VERSION=1.0.27
 PULSE_VERSION=v11.1
 
 if [ ! -e "ndk-$ARCH" ] ; then
-	"$ANDROID_NDK_ROOT"/build/tools/make_standalone_toolchain.py --arch="$ARCH" --install-dir="ndk-$ARCH" --api=21
+	"$ANDROID_NDK_ROOT"/build/tools/make_standalone_toolchain.py --arch="$ARCH" --install-dir="ndk-$ARCH" --api=9
 fi
 
 export BUILDROOT=$PWD
