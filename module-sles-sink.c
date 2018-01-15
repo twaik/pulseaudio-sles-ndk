@@ -80,7 +80,8 @@ PA_MODULE_VERSION(PACKAGE_VERSION);
 PA_MODULE_LOAD_ONCE(false);
 PA_MODULE_USAGE(
         "sink_name=<name for the sink> "
-        "sink_properties=<properties for the sink> ");
+        "sink_properties=<properties for the sink> "
+        "rate=<sampling rate> ");
 
 #define DEFAULT_SINK_NAME "OpenSL ES sink"
 #define BLOCK_USEC (PA_USEC_PER_SEC * 2)
@@ -114,6 +115,7 @@ struct userdata {
 static const char* const valid_modargs[] = {
     "sink_name",
     "sink_properties",
+    "rate",
     NULL
 };
 
@@ -166,7 +168,7 @@ static void sink_update_requested_latency_cb(pa_sink *s) {
     pa_sink_set_max_request_within_thread(s, nbytes);
 }
 
-void pa_init_sles_player(struct userdata *s)
+static int pa_init_sles_player(struct userdata *s, SLuint32 sl_rate)
 {
 	if (s == NULL) return;
 	SLresult result;
@@ -191,10 +193,15 @@ void pa_init_sles_player(struct userdata *s)
 	locator_bufferqueue.locatorType = DATALOCATOR_BUFFERQUEUE;
 	locator_bufferqueue.numBuffers = 50;
 	
+	if (sl_rate < 0) {
+		pa_log("Incompatible sample rate");
+		return -1;
+	}
+	
 	SLDataFormat_PCM pcm;
 	pcm.formatType = SL_DATAFORMAT_PCM;
 	pcm.numChannels = 2;
-	pcm.samplesPerSec = SL_SAMPLINGRATE_32;
+	pcm.samplesPerSec = sl_rate;
 	pcm.bitsPerSample = SL_PCMSAMPLEFORMAT_FIXED_16;
 	pcm.containerSize = 16;
 	pcm.channelMask = SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT;
@@ -217,9 +224,10 @@ void pa_init_sles_player(struct userdata *s)
 	result = (*s->bqPlayerObject)->GetInterface(s->bqPlayerObject, IID_BUFFERQUEUE_USED, &s->bqPlayerBufferQueue); checkResult(result);
 	
 	result = (*s->bqPlayerPlay)->SetPlayState(s->bqPlayerPlay, SL_PLAYSTATE_PLAYING); checkResult(result);
+	return 0;
 }
 
-void pa_destroy_sles_player(struct userdata *s){
+static void pa_destroy_sles_player(struct userdata *s){
 	if (s == NULL) return;
 	(*s->bqPlayerPlay)->SetPlayState(s->bqPlayerPlay, SL_PLAYSTATE_STOPPED);
 	(*s->bqPlayerObject)->Destroy(s->bqPlayerObject);
@@ -299,6 +307,40 @@ fail:
 finish:
     pa_log_debug("Thread shutting down");
 }
+	
+static static PA2SLrate(uint32_t rate){
+	if (!(forceFormat >= 8000 && <= 192000)) return -1;
+	switch(rate){
+		case 8000:
+			return SL_SAMPLINGRATE_8;
+		case 11025:
+			return SL_SAMPLINGRATE_11_025;
+		case 12000:
+			return SL_SAMPLINGRATE_12;
+		case 16000:
+			return SL_SAMPLINGRATE_16;
+		case 22050:
+			return SL_SAMPLINGRATE_22_05;
+		case 24000:
+			return SL_SAMPLINGRATE_24;
+		case 32000:
+			return SL_SAMPLINGRATE_32;
+		case 44100:
+			return SL_SAMPLINGRATE_44_1;
+		case 48000:
+			return SL_SAMPLINGRATE_48;
+		case 64000:
+			return SL_SAMPLINGRATE_64;
+		case 88200:
+			return SL_SAMPLINGRATE_88_2;
+		case 96000:
+			return SL_SAMPLINGRATE_96;
+		case 192000:
+			return SL_SAMPLINGRATE_192;
+		default:
+			return -1;
+        }
+}
 
 int pa__init(pa_module*m) {
     struct userdata *u = NULL;
@@ -316,19 +358,33 @@ int pa__init(pa_module*m) {
     }
 
     // High rate causes glitches on some devices, this is needed to prevent it
-    ss.rate = 32000;
-    ss.channels = 2;
-    ss.format = PA_SAMPLE_S16LE;
+    //ss.rate = 32000;
+    //ss.channels = 2;
+    //ss.format = PA_SAMPLE_S16LE;
+    
+    //OK. That will allow users to define sampling rate under his responsibility
+    ss = m->core->default_sample_spec;
     map = m->core->default_channel_map;
+    if (pa_modargs_get_sample_spec_and_channel_map(ma, &ss, &map, PA_CHANNEL_MAP_DEFAULT) < 0) {
+        pa_log("Invalid sample format specification or channel map");
+        goto fail;
+    }
 
-
+	//Needed. Don't touch
+    ss.channels = 2; 
+    ss.format = PA_SAMPLE_S16LE;
+    int forceFormat = atoi(getenv("PROPERTY_OUTPUT_SAMPLE_RATE"));
+    if (forceFormat >= 8000 && <= 192000) 
+	ss.rate = forceFormat;
+    
     m->userdata = u = pa_xnew0(struct userdata, 1);
     u->core = m->core;
     u->module = m;
     u->rtpoll = pa_rtpoll_new();
     pa_thread_mq_init(&u->thread_mq, m->core->mainloop, u->rtpoll);
 	
-	pa_init_sles_player(u);
+	if (pa_init_sles_player(u, PA2SLrate(ss.rate)) < 0)
+		goto fail;
 	int buff[2] = {0, 0};
 	(*u->bqPlayerBufferQueue)->Enqueue(u->bqPlayerBufferQueue, buff, 1);
 
