@@ -318,7 +318,6 @@ static int getenv_int(const char * env, size_t min_len){
     char * got_env = getenv(env);
     int ret = 0;
     if (got_env != NULL && strlen(got_env) >= min_len) ret = atoi(got_env); //"8000" is 4 symbols
-    pa_log("env %s: %s trasformed to %d\n", env, got_env, ret);
     return ret;
 }
 
