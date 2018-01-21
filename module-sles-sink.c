@@ -314,6 +314,14 @@ finish:
     pa_log_debug("Thread shutting down");
 }
 
+static int getenv_int(const char * env, size_t min_len){
+    char * got_env = getenv(env);
+    int ret = 0;
+    if (got_env != NULL && strlen(got_env) >= min_len) ret = atoi(got_env); //"8000" is 4 symbols
+    pa_log("env %s: %s trasformed to %d\n", env, got_env, ret);
+    return ret;
+}
+
 int pa__init(pa_module*m) {
     struct userdata *u = NULL;
     pa_sample_spec ss;
@@ -345,14 +353,15 @@ int pa__init(pa_module*m) {
 	//Needed. Don't touch
     ss.channels = 2; 
     ss.format = PA_SAMPLE_S16LE;
-	
-    char *forceFormat_env = getenv("PROPERTY_OUTPUT_SAMPLE_RATE");
-    int forceFormat = 0;
-    if (forceFormat_env != NULL && strlen(forceFormat_env) >= 4) forceFormat = atoi(forceFormat_c); //"8000" is 4 symbols
-    if (forceFormat >= 8000 && forceFormat <= 192000) 
-	ss.rate = forceFormat;
     
     m->userdata = u = pa_xnew0(struct userdata, 1);
+    
+    int forceFormat = getenv_int("PROPERTY_OUTPUT_SAMPLE_RATE", 4); //"8000" is 4 symbols
+    if (forceFormat >= 8000 && forceFormat <= 192000)  {
+		ss.rate = forceFormat;
+		pa_log_info("Sample rate was forced to be %u\n", ss.rate);
+	}
+	
     u->core = m->core;
     u->module = m;
     u->rtpoll = pa_rtpoll_new();
@@ -361,8 +370,8 @@ int pa__init(pa_module*m) {
 	//Pulseaudio uses samples per sec but OpenSL ES uses samples per ms
 	if (pa_init_sles_player(u, ss.rate * 1000) < 0)
 		goto fail;
-	int buff[2] = {0, 0};
-	(*u->bqPlayerBufferQueue)->Enqueue(u->bqPlayerBufferQueue, buff, 1);
+	//int buff[2] = {0, 0};
+	//(*u->bqPlayerBufferQueue)->Enqueue(u->bqPlayerBufferQueue, buff, 1);
 
     pa_sink_new_data_init(&data);
     data.driver = __FILE__;
@@ -445,6 +454,10 @@ void pa__done(pa_module*m) {
         pa_asyncmsgq_send(u->thread_mq.inq, NULL, PA_MESSAGE_SHUTDOWN, NULL, 0, NULL);
         pa_thread_free(u->thread);
     }
+    
+    if (u->engineObject){
+		pa_destroy_sles_player(u);
+	}
 
     pa_thread_mq_done(&u->thread_mq);
 
