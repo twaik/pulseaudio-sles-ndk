@@ -118,6 +118,11 @@ struct userdata {
 	BufferQueueItf bqPlayerBufferQueue;
 };
 
+typedef struct {
+	pa_memblock *memblock;
+	pa_usec_t release_time;
+} pa_memblock_planned_to_be_released;
+
 static const char* const valid_modargs[] = {
     "sink_name",
     "sink_properties",
@@ -242,6 +247,7 @@ static void pa_destroy_sles_player(struct userdata *s){
 }
 
 static void process_render(struct userdata *u, pa_usec_t now) {
+	static pa_memblock_planned_to_be_released memblocks[32];
     size_t ate = 0;
 
     pa_assert(u);
@@ -254,15 +260,36 @@ static void process_render(struct userdata *u, pa_usec_t now) {
     /* Fill the buffer up the latency size */
     while (u->timestamp < now + u->block_usec) {
         void *p;
+        
+		//unref planned memblocks
+		int i;
+		for (i=0; i<32; i++){
+			if (memblocks[i].release_time != 0 && memblocks[i].release_time <= pa_rtclock_now()){
+				pa_memblock_unref(memblocks[i].memblock);
+				memblocks[i].release_time = 0;
+				memblocks[i].memblock = NULL;
+			}
+		}
 		
         pa_sink_render(u->sink, u->sink->thread_info.max_request, &u->memchunk);
         p = pa_memblock_acquire(u->memchunk.memblock);
         (*u->bqPlayerBufferQueue)->Enqueue(u->bqPlayerBufferQueue, (uint8_t*) p + u->memchunk.index, u->memchunk.length);
         pa_memblock_release(u->memchunk.memblock);
-        pa_memblock_unref(u->memchunk.memblock);
 
         u->timestamp += pa_bytes_to_usec(u->memchunk.length, &u->sink->sample_spec);
         ate += u->memchunk.length;
+        
+        //plan current memblock to be unrefed
+		for (i=0; i<32; i++){
+			if (memblocks[i].release_time == 0){
+				memblocks[i].release_time = u->timestamp;
+				memblocks[i].memblock = u->memchunk.memblock;
+				break;
+			}
+		}
+        
+        //pa_memblock_unref(u->memchunk.memblock);
+        pa_memchunk_reset(&u->memchunk);
         if (ate >= u->sink->thread_info.max_request) break;
     }
 }
