@@ -259,6 +259,7 @@ static void process_render(struct userdata *u, pa_usec_t now) {
         p = pa_memblock_acquire(u->memchunk.memblock);
         (*u->bqPlayerBufferQueue)->Enqueue(u->bqPlayerBufferQueue, (uint8_t*) p + u->memchunk.index, u->memchunk.length);
         pa_memblock_release(u->memchunk.memblock);
+        pa_memblock_unref(u->memchunk.memblock);
 
         u->timestamp += pa_bytes_to_usec(u->memchunk.length, &u->sink->sample_spec);
         ate += u->memchunk.length;
