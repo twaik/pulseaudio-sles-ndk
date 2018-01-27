@@ -75,10 +75,6 @@
 		else fprintf(stderr, "error %d at %s:%d\n", (int) r, __FILE__, __LINE__); \
 		} \
 	} while (0)
-typedef struct {
-	short left;
-	short right;
-} frame_t;
 
 PA_MODULE_AUTHOR("Lennart Poettering, Nathan Martynov");
 PA_MODULE_DESCRIPTION("Android OpenSL ES sink");
@@ -91,6 +87,11 @@ PA_MODULE_USAGE(
 
 #define DEFAULT_SINK_NAME "OpenSL ES sink"
 #define BLOCK_USEC (PA_USEC_PER_SEC * 2)
+
+typedef struct pa_memblock_queue_t {
+	pa_memblock *memblock;
+	struct pa_memblock_queue_t* next;
+} pa_memblock_queue;
 
 struct userdata {
     pa_core *core;
@@ -116,12 +117,10 @@ struct userdata {
 	SLObjectItf bqPlayerObject;
 	SLPlayItf bqPlayerPlay;
 	BufferQueueItf bqPlayerBufferQueue;
+	
+	pa_memblock_queue* current;
+	pa_memblock_queue* last;
 };
-
-typedef struct {
-	pa_memblock *memblock;
-	pa_usec_t release_time;
-} pa_memblock_planned_to_be_released;
 
 static const char* const valid_modargs[] = {
     "sink_name",
@@ -179,6 +178,17 @@ static void sink_update_requested_latency_cb(pa_sink *s) {
     pa_sink_set_max_request_within_thread(s, nbytes);
 }
 
+static void pa_sles_callback(BufferQueueItf bq, void *context){
+	struct userdata* s = (struct userdata*) context;
+	pa_memblock_queue* next;
+	if (s->current != NULL){
+		if (s->current->memblock != NULL) pa_memblock_unref(s->current->memblock);
+		next = s->current->next;
+		free(s->current);
+		s->current = next;
+	}
+}
+
 static int pa_init_sles_player(struct userdata *s, SLint32 sl_rate)
 {
 	if (s == NULL) return -1;
@@ -234,7 +244,10 @@ static int pa_init_sles_player(struct userdata *s, SLint32 sl_rate)
 	result = (*s->bqPlayerObject)->GetInterface(s->bqPlayerObject, SL_IID_PLAY, &s->bqPlayerPlay); checkResult(result);
 	result = (*s->bqPlayerObject)->GetInterface(s->bqPlayerObject, IID_BUFFERQUEUE_USED, &s->bqPlayerBufferQueue); checkResult(result);
 	
+    result = (*s->bqPlayerBufferQueue)->RegisterCallback(s->bqPlayerBufferQueue, pa_sles_callback, s); checkResult(result);
+	
 	result = (*s->bqPlayerPlay)->SetPlayState(s->bqPlayerPlay, SL_PLAYSTATE_PLAYING); checkResult(result);
+	
 	return 0;
 }
 
@@ -247,7 +260,7 @@ static void pa_destroy_sles_player(struct userdata *s){
 }
 
 static void process_render(struct userdata *u, pa_usec_t now) {
-	static pa_memblock_planned_to_be_released memblocks[32];
+	pa_memblock_queue* current_block;
     size_t ate = 0;
 
     pa_assert(u);
@@ -260,16 +273,6 @@ static void process_render(struct userdata *u, pa_usec_t now) {
     /* Fill the buffer up the latency size */
     while (u->timestamp < now + u->block_usec) {
         void *p;
-        
-		//unref planned memblocks
-		int i;
-		for (i=0; i<32; i++){
-			if (memblocks[i].release_time != 0 && memblocks[i].release_time <= pa_rtclock_now()){
-				pa_memblock_unref(memblocks[i].memblock);
-				memblocks[i].release_time = 0;
-				memblocks[i].memblock = NULL;
-			}
-		}
 		
         pa_sink_render(u->sink, u->sink->thread_info.max_request, &u->memchunk);
         p = pa_memblock_acquire(u->memchunk.memblock);
@@ -279,13 +282,15 @@ static void process_render(struct userdata *u, pa_usec_t now) {
         u->timestamp += pa_bytes_to_usec(u->memchunk.length, &u->sink->sample_spec);
         ate += u->memchunk.length;
         
-        //plan current memblock to be unrefed
-		for (i=0; i<32; i++){
-			if (memblocks[i].release_time == 0){
-				memblocks[i].release_time = u->timestamp;
-				memblocks[i].memblock = u->memchunk.memblock;
-				break;
-			}
+        current_block = malloc(sizeof(pa_memblock_queue));
+        memset(current_block, 0, sizeof(pa_memblock_queue));
+        
+        current_block->memblock = u->memchunk.memblock;
+        if (u->current == NULL) { u->current = current_block; }
+        if (u->last == NULL) { u->last = current_block; }
+        else {
+			u->last->next = current_block;
+			u->last = current_block;
 		}
         
         //pa_memblock_unref(u->memchunk.memblock);
