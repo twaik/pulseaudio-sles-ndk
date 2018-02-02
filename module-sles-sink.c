@@ -347,10 +347,11 @@ finish:
     pa_log_debug("Thread shutting down");
 }
 
-static int getenv_int(const char * env, size_t min_len){
+static int getenv_int(const char * env){
     char * got_env = getenv(env);
     int ret = 0;
-    if (got_env != NULL && strlen(got_env) >= min_len) ret = atoi(got_env); //"8000" is 4 symbols
+    if (got_env != NULL)
+        ret = atoi(got_env);
     return ret;
 }
 
@@ -388,7 +389,7 @@ int pa__init(pa_module*m) {
     
     m->userdata = u = pa_xnew0(struct userdata, 1);
     
-    int forceFormat = getenv_int("PROPERTY_OUTPUT_SAMPLE_RATE", 4); //"8000" is 4 symbols
+    int forceFormat = getenv_int("PROPERTY_OUTPUT_SAMPLE_RATE");
     if (forceFormat >= 8000 && forceFormat <= 192000)  {
 		ss.rate = forceFormat;
 		pa_log_info("Sample rate was forced to be %u\n", ss.rate);
