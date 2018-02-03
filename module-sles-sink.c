@@ -212,7 +212,7 @@ static int pa_init_sles_player(struct userdata *s, SLint32 sl_rate)
 	
 	SLDataLocator_BufferQueue locator_bufferqueue;
 	locator_bufferqueue.locatorType = DATALOCATOR_BUFFERQUEUE;
-	locator_bufferqueue.numBuffers = 50;
+	locator_bufferqueue.numBuffers = 16;
 	
 	if (sl_rate < SL_SAMPLINGRATE_8 || sl_rate > SL_SAMPLINGRATE_192) {
 		pa_log("Incompatible sample rate");
