@@ -370,30 +370,30 @@ int pa__init(pa_module*m) {
         goto fail;
     }
 
-    // High rate causes glitches on some devices, this is needed to prevent it
-    //ss.rate = 32000;
-    //ss.channels = 2;
-    //ss.format = PA_SAMPLE_S16LE;
-    
-    //OK. That will allow users to define sampling rate under his responsibility
     ss = m->core->default_sample_spec;
     map = m->core->default_channel_map;
+
+    // env var "PROPERTY_OUTPUT_SAMPLE_RATE" overrides "default-sample-rate" in daemon.conf
+    int forceFormat = getenv_int("PROPERTY_OUTPUT_SAMPLE_RATE");
+    if (forceFormat >= 8000 && forceFormat <= 192000)  {
+		ss.rate = forceFormat;
+		pa_log_info("Env var \"PROPERTY_OUTPUT_SAMPLE_RATE\""
+			    " is being used as the sample rate.\n"
+			    "This will be overriden if the module"
+			    " is loaded with the \"rate\" arg set.");
+	}
+
+    // module argument "rate" overrides "default-sample-rate" AND "PROPERTY_OUTPUT_SAMPLE_RATE"
     if (pa_modargs_get_sample_spec_and_channel_map(ma, &ss, &map, PA_CHANNEL_MAP_DEFAULT) < 0) {
         pa_log("Invalid sample format specification or channel map");
         goto fail;
     }
 
-	//Needed. Don't touch
+    // Currently OpenSL ES can only handle these
     ss.channels = 2; 
     ss.format = PA_SAMPLE_S16LE;
     
     m->userdata = u = pa_xnew0(struct userdata, 1);
-    
-    int forceFormat = getenv_int("PROPERTY_OUTPUT_SAMPLE_RATE");
-    if (forceFormat >= 8000 && forceFormat <= 192000)  {
-		ss.rate = forceFormat;
-		pa_log_info("Sample rate was forced to be %u\n", ss.rate);
-	}
 	
     u->core = m->core;
     u->module = m;
