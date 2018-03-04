@@ -53,7 +53,7 @@ if [ ! -e pulseaudio/bootstrap.sh ] ; then
 fi
 
 if [ ! -e libtool-$LIBTOOL_VERSION.tar.gz ] ; then
-	wget http://ftpmirror.gnu.org/libtool/libtool-$LIBTOOL_VERSION.tar.gz
+	wget https://ftp.gnu.org/gnu/libtool/libtool-$LIBTOOL_VERSION.tar.gz
 fi
 
 if [ ! -e libsndfile-$LIBSNDFILE_VERSION.tar.gz ] ; then
