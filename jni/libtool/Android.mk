@@ -2,7 +2,7 @@ LOCAL_PATH := $(call my-dir)
 
 LOCAL_MODULE := libltdl
 LOCAL_MODULE_FILENAME := libltdl
-LOCAL_CFLAGS := -DLTDL=1 -DLTDLOPEN=_PROGRAM_ -DLT_DEBUG_LOADERS
+LOCAL_CFLAGS := -DLTDL=1 -DLTDLOPEN=_PROGRAM_
 LOCAL_SRC_FILES := \
 	libltdl/loaders/dlopen.c \
 	libltdl/loaders/preopen.c \

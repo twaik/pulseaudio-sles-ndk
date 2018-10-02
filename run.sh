@@ -6,5 +6,16 @@ adb push pa.conf /
 adb push libs/armeabi-v7a /
 adb shell mkdir /pulse
 
+adb shell killall pulseaudio
+
 adb shell HOME=/pulse TMPDIR=/pulse LD_LIBRARY_PATH=/armeabi-v7a \
-/armeabi-v7a/pulseaudio --disable-shm=true -n -F /pa.conf --daemonize=false --use-pid-file=false --log-target=stderr --log-level=4 --system=false --dl-search-path=/armeabi-v7a
+/armeabi-v7a/pulseaudio \
+	--disable-shm=true \
+	-n -F /pa.conf \
+	--exit-idle-time=-1 \
+	--daemonize=false \
+	--use-pid-file=false \
+	--log-target=stderr \
+	--log-level=4 \
+	--system=false \
+	--dl-search-path=/armeabi-v7a
