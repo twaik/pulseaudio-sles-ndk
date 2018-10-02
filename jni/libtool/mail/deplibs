@@ -1,0 +1,610 @@
+From nobody Wed Oct 14 16:45:01 1998
+X-From-Line: ian@cygnus.com Fri Apr 17 23:33:18 1998
+Return-Path: <ian@cygnus.com>
+Delivered-To: gord@trick.profitpress.com
+Received: (qmail 23427 invoked from network); 17 Apr 1998 23:33:17 -0000
+Received: from unknown (HELO bambam.m-tech.ab.ca) (127.0.0.1)
+  by 127.0.0.1 with SMTP; 17 Apr 1998 23:33:17 -0000
+Received: from tweedledumb.cygnus.com (gateway.m-tech.ab.ca [10.0.0.1]) by bambam.m-tech.ab.ca (8.8.5/8.6.9) with ESMTP id OAA06912 for <gord@profitpress.com>; Fri, 17 Apr 1998 14:17:39 -0600
+Received: from subrogation.cygnus.com (subrogation.cygnus.com [192.80.44.76])
+	by tweedledumb.cygnus.com (8.8.5/8.8.5) with ESMTP id QAA18613;
+	Fri, 17 Apr 1998 16:18:12 -0400 (EDT)
+Received: (ian@localhost) by subrogation.cygnus.com (950413.SGI.8.6.12/8.6.4) id QAA08387; Fri, 17 Apr 1998 16:18:11 -0400
+Date: Fri, 17 Apr 1998 16:18:11 -0400
+Message-Id: <199804172018.QAA08387@subrogation.cygnus.com>
+From: Ian Lance Taylor <ian@cygnus.com>
+To: gord@profitpress.com
+CC: bug-libtool@gnu.org
+In-reply-to: <86k98oh6fy.fsf@trick.profitpress.com> (message from Gordon
+	Matzigkeit on 17 Apr 1998 08:24:33 -0600)
+Subject: Re: libtool on cygwin32
+Xref: trick.profitpress.com mail.libtool:1335
+Lines: 30
+X-Gnus-Article-Number: 2   Mon Nov  2 17:17:55 1998
+
+   From: Gordon Matzigkeit <gord@profitpress.com>
+   Date: 17 Apr 1998 08:24:33 -0600
+
+   >>>>> Ian Lance Taylor writes:
+
+   [...]
+
+    ILT> So, my choices are to use -no-undefined -lbfd everywhere, or to
+    ILT> use it only on Windows.
+
+   Would `-avoid-deps' (a proposed flag) give you what you want?
+
+   default = record inter-library dependencies on all platforms, if
+   possible.
+
+   -no-undefined = the dependency info provided is complete.  Build
+   shared libraries on AIX and windows.
+
+   -avoid-deps = implies `-no-undefined'.  However, avoid recording
+   inter-library dependencies unless they are required for building a
+   shared library.
+
+Yes, that sounds like it will do what I need.
+
+Somebody someday may want to record some library dependencies but not
+others, in which case you would want
+    -avoid-deps -lfoo -no-avoid-deps -lbar
+
+Ian
+
+From nobody Wed Oct 14 16:45:40 1998
+X-From-Line: ian@cygnus.com Mon Apr 27 16:24:19 1998
+Return-Path: <ian@cygnus.com>
+Delivered-To: gord@trick.profitpress.com
+Received: (qmail 136 invoked from network); 27 Apr 1998 16:24:18 -0000
+Received: from unknown (HELO bambam.m-tech.ab.ca) (127.0.0.1)
+  by localhost with SMTP; 27 Apr 1998 16:24:18 -0000
+Received: from tweedledumb.cygnus.com (gateway.m-tech.ab.ca [10.0.0.1]) by bambam.m-tech.ab.ca (8.8.5/8.6.9) with ESMTP id JAA21924 for <gord@m-tech.ab.ca>; Mon, 27 Apr 1998 09:42:43 -0600
+Received: from subrogation.cygnus.com (subrogation.cygnus.com [192.80.44.76])
+	by tweedledumb.cygnus.com (8.8.5/8.8.5) with ESMTP id LAA02934;
+	Mon, 27 Apr 1998 11:48:04 -0400 (EDT)
+Received: (ian@localhost) by subrogation.cygnus.com (950413.SGI.8.6.12/8.6.4) id LAA01776; Mon, 27 Apr 1998 11:48:03 -0400
+Date: Mon, 27 Apr 1998 11:48:03 -0400
+Message-Id: <199804271548.LAA01776@subrogation.cygnus.com>
+From: Ian Lance Taylor <ian@cygnus.com>
+To: gord@m-tech.ab.ca
+CC: robbe@orcus.priv.at, bug-libtool@gnu.org
+In-reply-to: <86bttpvbqd.fsf@trick.profitpress.com> (message from Gordon
+	Matzigkeit on 25 Apr 1998 15:21:30 -0600)
+Subject: Re: libtool 1.2: Why no inter-lib dependencies on ELF?
+Xref: trick.profitpress.com mail.libtool:1388
+Lines: 27
+X-Gnus-Article-Number: 3   Mon Nov  2 17:17:55 1998
+
+   From: Gordon Matzigkeit <gord@m-tech.ab.ca>
+   Date: 25 Apr 1998 15:21:30 -0600
+
+   There are still some unresolved issues (see
+   http://www.profitpress.com/libtool/deplibs.html).  Full inter-library
+   dependency support is scheduled for libtool 1.3, though, and should
+   appear in the next beta-testing release.
+
+I read that page, and here are a few quick notes.
+
+1) On any platform which does not require -fpic you can link
+static libraries into shared libraries.  These platforms include
+AIX, Irix 5/6, and Windows.
+
+2) On any functioning ELF platform you can include code which was not
+compiled with -fpic in a shared library, and you can link with a
+static library when creating a shared library.  You say that Solaris
+won't let you link a shared library against a static one, but it
+appears to work for me.  What type of test are you using?
+
+3) On SunOS you can not correctly link a static library into a shared
+library.  It will mostly work, but I believe that certain operations,
+such as overriding a shared library function in the main executable,
+will fail.
+
+Ian
+
+From nobody Wed Oct 14 16:48:43 1998
+X-From-Line: gord@gnu.org Thu Sep 10 04:39:20 1998
+Return-Path: <gord@gnu.org>
+Delivered-To: gord@trick.fig.org
+Received: (qmail 30644 invoked from network); 10 Sep 1998 04:39:18 -0000
+Received: from gen2-93ip34.cadvision.com (HELO bambam.m-tech.ab.ca) (209.91.93.34)
+  by cs366707-a.cgmo1.ab.wave.home.com with SMTP; 10 Sep 1998 04:39:18 -0000
+Received: from mescaline.gnu.org (gateway [10.0.0.1]) by bambam.m-tech.ab.ca (8.8.5/8.6.9) with ESMTP id WAA26741 for <gord@m-tech.ab.ca>; Wed, 9 Sep 1998 22:38:15 -0600
+Received: from mailhost.cyberramp.net (root@mailhost.cyberramp.net [207.158.64.11]) by mescaline.gnu.org (8.8.5/8.6.12GNU) with ESMTP id AAA11165 for <bug-libtool@gnu.org>; Thu, 10 Sep 1998 00:38:17 -0400
+Received: from fuzzylog.simple.dallas.tx.us (dal-tsa11-49.cyberramp.net [207.158.111.49])
+	by mailhost.cyberramp.net (8.9.1a/8.9.1/ler-980825-0832-PM) with ESMTP id XAA13581;
+	Wed, 9 Sep 1998 23:37:41 -0500 (CDT)
+Received: from scooby (scooby [192.168.1.3])
+	by fuzzylog.simple.dallas.tx.us (8.8.8/8.8.8) with SMTP id XAA27692;
+	Wed, 9 Sep 1998 23:37:38 -0500 (CDT)
+Date: Wed, 9 Sep 1998 23:37:38 -0500 (CDT)
+From: Bob Friesenhahn <bfriesen@simple.dallas.tx.us>
+To: Libtool Bugs <bug-libtool@gnu.org>
+Subject: Late-binding looses space efficiency ...
+Message-ID: <Pine.SO4.4.02.9809092322490.808-100000@scooby.simple.dallas.tx.us>
+MIME-Version: 1.0
+Content-Type: TEXT/PLAIN; charset=US-ASCII
+Xref: trick.fig.org libtool:1605
+Lines: 27
+X-Gnus-Article-Number: 4   Mon Nov  2 17:17:55 1998
+
+On most systems, libtool does not supply the dependency libraries (-llib) when
+it creates the shared library in spite of these being supplied on the libtool
+command line.  The ImageMagick package uses quite a few dependency libraries.
+The ImageMagick library uses these libraries directly but utilities built
+using the ImageMagick library only link against these libraries because the
+ImageMagick library demands it.
+
+Through testing we have found that if the 'ltconfig' archive_cmds definition
+is ammended to include $deplibs that linked programs become much smaller (1/3
+to 1/4 the original size).  This appears to be because more code is included
+in the shared library itself, avoiding the need for this to be part of the
+program.
+
+The distributed 'ltconfig' only supplies $deplibs for systems matching osf3* |
+osf4*. Is there a reason why $deplibs is not supplied for all systems that can
+support inter-library dependencies?  Reducing overall package size is highly
+desireable in order to reduce disk-space consumption and binary distribution
+size.
+
+Thanks,
+
+Bob
+======================================
+Bob Friesenhahn
+bfriesen@simple.dallas.tx.us
+http://www.cyberramp.net/~bfriesen
+
+From nobody Wed Oct 14 16:52:40 1998
+X-From-Line: ddj@hks.net Thu Sep 17 21:29:13 1998
+Return-Path: <ddj@hks.net>
+Delivered-To: gord@trick.fig.org
+Received: (qmail 22994 invoked by uid 1003); 17 Sep 1998 21:29:12 -0000
+Delivered-To: jana-profitpress-gord@profitpress.com
+Received: (qmail 22991 invoked from network); 17 Sep 1998 21:29:11 -0000
+Received: from dali.hks.net (ddj@208.203.175.210)
+  by cs366707-a.cgmo1.ab.wave.home.com with SMTP; 17 Sep 1998 21:29:11 -0000
+Received: (from ddj@localhost)
+	by dali.hks.net (8.8.5/8.8.5) id RAA04020;
+	Thu, 17 Sep 1998 17:26:28 -0400
+Received: from BatMail.robin.v2.15.CUILIB.3.45.SNAP.NOT.LINKED.dali..none..ix86.Linux
+          via MS.5.6.dali.(none).ix86_Linux;
+          Thu, 17 Sep 1998 17:26:27 -0400 (EDT)
+Message-ID: <oq0Lu3Jz000185PkIG@hks.net>
+Date: Thu, 17 Sep 1998 17:26:27 -0400 (EDT)
+From: Doug DeJulio <ddj@hks.net>
+To: gord@profitpress.com
+Subject: Re: Libtool Inter-library Dependencies
+Xref: trick.fig.org libtool:1611
+Lines: 32
+X-Gnus-Article-Number: 5   Mon Nov  2 17:17:55 1998
+
+I read your discussion of why libtool can't handle inter-library
+dependencies and how people might be able to help fix this.  I found
+an error in item #1 of "The Solution".  I quote:
+
+> Finally, there are some systems which won't even allow you to link a
+> shared library against a static one: 
+>          Solaris 2.x 
+
+This is only true in most cases.  If all of the accessed individual
+object files in the static library *could* have been put in a shared
+library, things will work just fine.  It's not the type of library
+that matters, but the type of object files.
+
+Our commercial product includes a library and a few
+dynamically-loadable modules that make that library accessible to
+various interpretetd languages (TCL, Perl, PHP3 and Python at the
+moment, with more coming).  We don't distribute a shared library
+anymore because when we did this caused a ton of trouble (most people
+just couldn't get it configured correctly).  I haven't yet found a
+platform on which linking dynamically-loadable object file against a
+static "ar" archive containing relocatable object files causes any
+trouble (and we support SCO, Digital Unix, SCO, Solaris, Linux, and
+FreeBSD, so this isn't because of narrow experience).
+
+So, the main point is that just deciding whether it'll work based on
+looking at the library file will in some cases fail when it should
+have succeeded (and the software we sell is such a case).
+
+-- 
+Doug DeJulio      | mailto:ddj@hks.net
+HKS, Incorporated | http://www.hks.net/
+
+From gord@trick.fig.org Wed Nov  4 16:50 EDT 1998
+Received: from grande.dcc.unicamp.br (grande.dcc.unicamp.br [143.106.7.8])
+	by amazonas.dcc.unicamp.br (8.8.5/8.8.5) with ESMTP id QAA12687
+	for <oliva@amazonas.dcc.unicamp.br>; Wed, 4 Nov 1998 16:50:18 -0200 (EDT)
+Received: from cabler.cableregina.com (ip2.net20483142.cr.sk.ca [204.83.142.2])
+	by grande.dcc.unicamp.br (8.8.5/8.8.5) with SMTP id QAA03463
+	for <oliva@dcc.unicamp.br>; Wed, 4 Nov 1998 16:50:12 -0200 (EDT)
+Received: from [24.72.10.223] by cabler.cableregina.com
+  (SMTPD32-4.0) id A25C7D0074; Wed, 04 Nov 1998 12:52:12 -0600
+Received: (qmail 1392 invoked by uid 1001); 4 Nov 1998 18:51:16 -0000
+To: "Gary V. Vaughan" <gvaughan@oranda.demon.co.uk>
+Cc: Ian Lance Taylor <ian@cygnus.com>, tanner@gmx.de, oliva@dcc.unicamp.br,
+        bug-libtool@gnu.org
+Subject: Re: Inter-library dependencies in libtool
+References: <199811040125.UAA01678@subrogation.cygnus.com> <3640381C.725FC8F2@oranda.demon.co.uk>
+X-Attribution:  Gord
+Mime-Version: 1.0 (generated by tm-edit 7.106)
+From: Gordon Matzigkeit <gord@trick.fig.org>
+Date: 04 Nov 1998 12:51:11 -0600
+In-Reply-To: "Gary V. Vaughan"'s message of Wed, 04 Nov 1998 11:18:52 +0000
+Message-ID: <86af27qokg.fsf@trick.fig.org>
+X-Mailer: Gnus v5.5/Emacs 20.2
+Content-Type: text/plain; charset=US-ASCII
+X-Content-Length: 2911
+Xref: araguaia.dcc.unicamp.br libtool-deplibs:6
+Lines: 80
+X-Gnus-Article-Number: 6   Thu Nov  5 08:41:15 1998
+
+Hi!
+
+>>>>> Gary V Vaughan writes:
+
+ GVV> Ian Lance Taylor wrote:
+
+ >> This kind of goes to the heart of libtool.  libtool wants to
+ >> present a particular interface for using shared libraries.
+
+ GVV> Is that an "official" design goal?
+
+Yes.  From the manual:
+
+  1. The system must be as elegant as possible.
+
+The main power of libtool is that it blurs the distinction between
+static archives (`.a' files) and shared libraries, by providing an
+interface that unifies the two into a new beast, the `.la' file.  This
+is the reason why libtool caught on: you can write Makefile rules that
+work for both shared and static libraries.
+
+ >> In order to do this, it assumes that the system supports certain
+ >> capabilities.  One of those is that the system can support
+ >> undefined symbols in shared libraries.
+
+To add to this point: or the system can link shared libraries against
+one another (deplibs).
+
+ GVV> My understanding was that libtool wants to provide a single
+ GVV> interface for the building of shared libraries, particularly so
+ GVV> that a developer can use libtool in a Makefile (*without* all of
+ GVV> the system dependant rules that used to me necessary) and get
+ GVV> shared libraries on all of libtool's supported platforms using
+ GVV> the same build rules.
+
+Both your understandings are correct.
+
+ >> That means that on systems which do not permit shared libraries to
+ >> have undefined symbols--AIX and Windows--libtool doesn't really
+ >> work.
+
+I would state this somewhat differently: on those platforms, libtool
+works (it can still build static libraries), but it doesn't shine.
+
+ >> [[snip]] In other words, the interface which libtool presents is
+ >> deficient.  It does not successfully hide the system on which it
+ >> is running, and it forces the code which calls libtool to make
+ >> adjustments.
+
+Exactly.
+
+I believe the correct way to solve this problem is to.... (drum roll)
+use inter-library dependencies!
+
+If `deplibs' is set, then the library has undefined symbols.  If it
+isn't set, then we could assume it has no undefined symbols.
+
+So, using `-lanything' on the .la creation line would be a synonym for
+`-allow-undefined', and having no `-l' flags would be a synonym for
+`-no-undefined'.
+
+ >> Of course even that will not make Windows DLLs identical to ELF
+ >> shared libraries.  ELF shared libraries permit the main program to
+ >> override a symbol in the shared library, and Windows DLLs do not.
+
+I'd just as soon cross that bridge when we come to it, unless you have
+any real-world examples that demand more control over whether or not
+DLLs are built.
+
+In any event, this is more incentive for Thomas Tanner's patches to
+restrict the symbol table, so that people don't get bitten by
+namespace clashes.
+
+Thanks for your comments,
+
+-- 
+ Gordon Matzigkeit <gord@fig.org> //\ I'm a FIG (http://www.fig.org/)
+    Lovers of freedom, unite!     \// I use GNU (http://www.gnu.org/)
+
+From ian@cygnus.com Wed Nov  4 17:16 EDT 1998
+Received: from grande.dcc.unicamp.br (grande.dcc.unicamp.br [143.106.7.8])
+	by amazonas.dcc.unicamp.br (8.8.5/8.8.5) with ESMTP id RAA17371
+	for <oliva@amazonas.dcc.unicamp.br>; Wed, 4 Nov 1998 17:15:59 -0200 (EDT)
+Received: from tweedledumb.cygnus.com (tweedledumb.cygnus.com [192.80.44.1])
+	by grande.dcc.unicamp.br (8.8.5/8.8.5) with ESMTP id RAA04425
+	for <oliva@dcc.unicamp.br>; Wed, 4 Nov 1998 17:15:45 -0200 (EDT)
+Received: from subrogation.cygnus.com (subrogation.cygnus.com [192.80.44.76])
+	by tweedledumb.cygnus.com (8.8.5/8.8.5) with ESMTP id OAA16598;
+	Wed, 4 Nov 1998 14:17:48 -0500 (EST)
+Received: (ian@localhost) by subrogation.cygnus.com (950413.SGI.8.6.12/8.6.4) id OAA02450; Wed, 4 Nov 1998 14:17:48 -0500
+Date: Wed, 4 Nov 1998 14:17:48 -0500
+Message-Id: <199811041917.OAA02450@subrogation.cygnus.com>
+From: Ian Lance Taylor <ian@cygnus.com>
+To: gord@trick.fig.org
+CC: gvaughan@oranda.demon.co.uk, tanner@gmx.de, oliva@dcc.unicamp.br,
+        bug-libtool@gnu.org
+In-reply-to: <86af27qokg.fsf@trick.fig.org> (message from Gordon Matzigkeit on
+	04 Nov 1998 12:51:11 -0600)
+Subject: Re: Inter-library dependencies in libtool
+X-Content-Length: 1774
+Xref: araguaia.dcc.unicamp.br libtool-deplibs:7
+Lines: 43
+X-Gnus-Article-Number: 7   Thu Nov  5 08:41:16 1998
+
+   From: Gordon Matzigkeit <gord@trick.fig.org>
+   Date: 04 Nov 1998 12:51:11 -0600
+
+   I believe the correct way to solve this problem is to.... (drum roll)
+   use inter-library dependencies!
+
+   If `deplibs' is set, then the library has undefined symbols.  If it
+   isn't set, then we could assume it has no undefined symbols.
+
+   So, using `-lanything' on the .la creation line would be a synonym for
+   `-allow-undefined', and having no `-l' flags would be a synonym for
+   `-no-undefined'.
+
+This sounds reasonable.  Of course, -allow-undefined should remain a
+possible option even if there are no -l options.  I guess
+-no-undefined could be an error check, but it wouldn't have much
+functional use.
+
+    >> Of course even that will not make Windows DLLs identical to ELF
+    >> shared libraries.  ELF shared libraries permit the main program to
+    >> override a symbol in the shared library, and Windows DLLs do not.
+
+   I'd just as soon cross that bridge when we come to it, unless you have
+   any real-world examples that demand more control over whether or not
+   DLLs are built.
+
+   In any event, this is more incentive for Thomas Tanner's patches to
+   restrict the symbol table, so that people don't get bitten by
+   namespace clashes.
+
+What I'm talking about is not namespace clashes, but rather the
+ability to override a particular function from a shared library.  For
+example, I can write my own version of malloc and free, and libc.so on
+an ELF system will use them rather than the malloc and free linked
+into the library.
+
+I don't think there is anything libtool can do about this.  It's
+something that is very useful when dealing with preexisting shared
+libraries, but is not particularly useful when dealing with shared
+libraries you build yourself.
+
+Ian
+
+From gord@mescaline.gnu.org Thu Nov  5 15:32 EDT 1998
+Received: from grande.dcc.unicamp.br (grande.dcc.unicamp.br [143.106.7.8])
+	by amazonas.dcc.unicamp.br (8.8.5/8.8.5) with ESMTP id PAA10607
+	for <oliva@amazonas.dcc.unicamp.br>; Thu, 5 Nov 1998 15:32:00 -0200 (EDT)
+Received: from mescaline.gnu.org (mescaline.gnu.org [158.121.106.21])
+	by grande.dcc.unicamp.br (8.8.5/8.8.5) with ESMTP id PAA22399
+	for <oliva@dcc.unicamp.br>; Thu, 5 Nov 1998 15:31:57 -0200 (EDT)
+Received: from hades.aethos.co.uk (hades.aethos.co.uk [195.171.18.1] (may be forged))
+	by mescaline.gnu.org (8.9.1a/8.9.1) with ESMTP id MAA01615
+	for <bug-libtool@gnu.org>; Thu, 5 Nov 1998 12:37:11 -0500
+Received: from zeus.aethos.co.uk (zeus.aethos.co.uk [193.164.192.100])
+	by hades.aethos.co.uk (8.8.5/8.8.5) with ESMTP id RAA28242;
+	Thu, 5 Nov 1998 17:37:46 GMT
+Received: from oranda.demon.co.uk (samhain.aethos.co.uk [193.164.192.38]) by zeus.aethos.co.uk with ESMTP (8.7.1/8.7.1) id RAA03467; Thu, 5 Nov 1998 17:33:25 GMT
+Message-ID: <3641E0DF.A8F92E78@oranda.demon.co.uk>
+Date: Thu, 05 Nov 1998 17:31:11 +0000
+From: "Gary V. Vaughan" <gvaughan@oranda.demon.co.uk>
+Organization: Aethos Communication Systems ltd.
+X-Mailer: Mozilla 4.5 [en] (WinNT; I)
+X-Accept-Language: en
+MIME-Version: 1.0
+To: Alexandre Oliva <oliva@dcc.unicamp.br>
+CC: Ian Lance Taylor <ian@cygnus.com>, tanner@gmx.de, gord@trick.fig.org,
+        bug-libtool@gnu.org
+Subject: Re: Inter-library dependencies in libtool
+References: <199811041854.NAA02418@subrogation.cygnus.com> <364183EF.9F15E7D6@oranda.demon.co.uk> <orhfweny1t.fsf@araguaia.dcc.unicamp.br>
+Content-Transfer-Encoding: 7bit
+Content-Type: text/plain; charset=us-ascii
+X-Content-Length: 3787
+Xref: araguaia.dcc.unicamp.br libtool-deplibs:8
+Lines: 87
+X-Gnus-Article-Number: 8   Sat Nov  7 05:46:44 1998
+
+If I may be permitted to quote you gratuitously... I think there are two
+problems here, and solving the first will keep most people happy most of
+the time.
+
+In order of progressive difficulty...
+
+1. COMPILE TIME LTLIBRARIES
+***************************
+
+Alexandre Oliva wrote:
+> 
+> [[1.1]] the programmer knows that his library is completely
+>    self-contained, it does not depend on any external symbols
+>    (-no-undefined)
+
+1.2) The link mode command line to libtool contains no -l options,
+     which implies your fallback method (try to link a shared library
+     as if `-no-undefined' had been specified, or if that fails build
+     only a static library).
+
+1.3) The programmer knows that resolving all of the symbols in his
+     library requires linking deplibs, and is able to specify all of
+     them on the link line (some if these may be installed .la files
+     which have deplibs of their own which libtool must also link
+     with).
+
+> [[1.4]] the programmer knows that there may be symbols in his library
+>    that are going to be supplied by another library, which [[is]]
+>    unknown in advance.  If such dependencies exist, they have to
+>    be resolved at program-linking time (-allow-undefined == default)
+
+     In the future maybe libtool will be able to do a two stage link
+     for platforms which can't do `-allow-undefined', the first link
+     to find which symbols are unresolved, the second against a
+     temporarily generated set of stubs... I'm not sure whether the
+     stage 2 lib can then resolve its stubbed functions against a
+     different library when it is subsequently linked into an
+     executable?  Perhaps I am reiterating Ian's idea about stubbing
+     on broken platforms?
+
+     In the present, broken platforms will have to manage with static
+     libraries in this case.
+
+2. RUNTIME LTLIBRARIES
+**********************
+
+> [[2.1]] the programmer needs a library foo that is completely
+>    self-contained, so that he can be sure that dlopen(foo) works,
+>    and just adding -lfoo *after* the library is installed will be
+>    fine (-self-contained ?)
+
+2.2) The programmer needs a library that can be dlopened, but which
+     can have all of its symbols resolved at link time with deplibs.
+     A small amount of magic in the form a .c and .h distributed with
+     libtool (as suggested by Gord) is enough to make sure deplibs
+     are dlopened if necessary and then the library itself is loaded.
+     At best, this will only be supported on platforms for which
+     libtool can generate shared libraries, perhaps only a (large)
+     subset of those.
+
+2.3) The programmer needs a library that can be dlopened, and 
+     doesn't know at link time how all of the symbols will be resolved.
+     A (small) subset of the platforms for which libtool can generate
+     shared libraries, will be handled by the aforementioned magic.
+     For the unhandled cases dld will be required.
+
+> [[2.4]] although a library is not going to be self-contained,
+>    [[snip]] the platform does not support libraries with undefined
+>    symbols, a shared library is badly needed, [[This will]] require
+>    dld.
+
+NOTE: in the above, I am assuming that
+      all-supported-platforms >= (large) >= (small) > no-platforms
+
+I don't see any need to add anymore command line switches, except
+perhaps to tell libtool whether this is a compile time or runtime
+library, but even that may prove unnecessary.
+
+The line between 1.3 and 1.4 could probably use some clarification; what
+if the link line includes several deplibs, but some symbols are
+still unresolved?  1.4?  Maybe... what if the platform doesn't support
+`-no-undefined'?  Perhaps there is a 1.3.5?  In any case, for maximum
+portability, we want to keep the number of cases of 1.4 to a minimum.
+
+Cheers,
+	Gary.
+
+From wmperry@aventail.com Sun Nov  1 01:03 EDT 1998
+Received: from grande.dcc.unicamp.br (grande.dcc.unicamp.br [143.106.7.8])
+	by amazonas.dcc.unicamp.br (8.8.5/8.8.5) with ESMTP id BAA29973
+	for <oliva@amazonas.dcc.unicamp.br>; Sun, 1 Nov 1998 01:03:04 -0200 (EDT)
+Received: from slow.bp.aventail.com (vina05.cntwk.net [207.205.120.131])
+	by grande.dcc.unicamp.br (8.8.5/8.8.5) with ESMTP id BAA10397
+	for <oliva@dcc.unicamp.br>; Sun, 1 Nov 1998 01:02:59 -0200 (EDT)
+Received: from kramer-fast.bp.aventail.com (kramer-fast.bp.aventail.com [192.168.200.2])
+	by slow.bp.aventail.com (8.8.5/8.8.5) with ESMTP id SAA31093;
+	Sat, 31 Oct 1998 18:03:52 -0800
+Received: (from wmperry@localhost)
+	by kramer-fast.bp.aventail.com (8.8.5/8.8.5) id WAA21542;
+	Sat, 31 Oct 1998 22:04:49 -0500
+Sender: wmperry@aventail.com
+To: Gordon Matzigkeit <gord@trick.fig.org>
+Cc: Alexandre Oliva <oliva@dcc.unicamp.br>
+Subject: Re: libtool 1.2 problems...
+References: <199810251708.MAA02237@kramer-fast.bp.aventail.com> <oryapxaste.fsf@araguaia.dcc.unicamp.br> <86zpac2z99.fsf@trick.fig.org>
+Errors-to: wmperry@aventail.com
+Reply-to: wmperry@aventail.com
+X-Face: O~Rn;(l][/-o1sALg4A@xpE:9-"'IR[%;,,!m7</SYF`{vYQ(&RI1&EiH[FvT;J}@f!4kfz
+ x_!Y#=y{Uuj9GvUi=cPuajQ(Z42R[wE@{G,sn$qGr5g/wnb*"*ktI+,CD}1Z'wxrM2ag-r0p5I6\nA
+ [WJopW_J.WY;
+Mime-Version: 1.0 (generated by tm-edit 7.108)
+From: wmperry@aventail.com (William M. Perry)
+Date: 31 Oct 1998 22:04:49 -0500
+In-Reply-To: Gordon Matzigkeit's message of "31 Oct 1998 15:32:50 -0600"
+Message-ID: <867lxgazam.fsf@kramer-fast.bp.aventail.com>
+X-Mailer: Gnus v5.6.8/XEmacs 21.0 - "Pyrenean-pre6"
+Content-Type: text/plain; charset=US-ASCII
+X-Content-Length: 2306
+Xref: araguaia.dcc.unicamp.br libtool-deplibs:9
+Lines: 66
+X-Gnus-Article-Number: 9   Fri Nov 20 23:23:12 1998
+
+Gordon Matzigkeit <gord@trick.fig.org> writes:
+
+> >>>>> Alexandre Oliva writes:
+> 
+>  AO> I can understand why we'd want all that stuff on systems with
+>  AO> brain-damaged dynamic linkers or such, but on Linux?  Gord?
+> 
+> No specific reason.  I was trying to implement something that would
+> work on all platforms, including Linux.
+> 
+>  >> I think optionally having a PUBLIC_API preprocessor macro or
+>  >> something might be handy.
+> 
+>  AO> Thomas Tanner has recently submitted a patch that implements
+>  AO> that, I think.  I still couldn't find the time to look carefully
+>  AO> at the patch, but, from the text description, it looks like
+>  AO> that's exactly what it does.
+> 
+> I think it's a good idea to be able to specify global symbols
+> explicitly.  That's part of the glibc versioning system that I was
+> alluding to earlier.
+> 
+> If you look at the `--version-script' option to GNU ld
+> ((ld.info)Version Script.), then you'll see more details.
+
+  To restrict globally visible symbols, here's the info I've got. :)  i've
+been using this for quite a while in our server product.  All hail the
+NSA.
+
+Linux: '--retain-symbols-file <FILENAME>' , with all the symbols you want
+       exported in <FILENAME>
+
+OSF1: '-hidden -exported_symbol "symname-or-wildcardspec"'
+
+AIX: you just restrict what you but in the export list you pass to
+     -bE:<FILENAME>.
+
+HP/UX: '+e symname' on the link line for each exported symbol you want
+
+Solaris: create a map file for the linker that looks like:
+	{
+	 global:
+	  symname1;
+	  symname2;
+	  symname3;
+	 local:
+	  *;
+	}
+
+	And use -M <MAPFILE> on the link line.
+
+BSD/OS 3.x is the only system I couldn't find a way to support this symbol
+hiding on.  But you might be able to do it better with BSD/OS 4.x now that
+they have finally moved to elf.
+
+BTW: What are the subscription directions for libtool-bugs or a general
+discussion list for stuff like this?  I've had lots of experience over the
+last 3 years with dynamic loading on various platforms, and would love to
+get libtool to the point where I could use it for all of our products here
+at aventail.  Less stuff for me to officially maintain. :)
+
+I'd also like to see DLD 4.x eventually so that I can just support it and
+ditch all the crufty junk we are using right now. :)  Abstraction good.
+
+-Bill P.
+

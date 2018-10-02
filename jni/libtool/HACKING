@@ -1,0 +1,461 @@
+GNU Libtool
+***********
+
+1. Introduction
+===============
+
+This file attempts to describe the processes we use to maintain libtool,
+and is not part of a release distribution.
+
+2. Maintenance Notes
+====================
+
+* If you incorporate a change from somebody on the net:
+  If it is a large change, you must make sure they have signed the
+  appropriate paperwork, and be sure to add their name and email
+  address to THANKS
+
+* If a change fixes a test, mention the test in the git log entry.
+
+* If somebody reports a new bug, mention his name in the git log entry
+  and in the test case you write.
+
+* The correct response to most actual bugs is to write a new test case
+  that demonstrates the bug.  Then fix the bug, re-run the test suite,
+  and check everything in.
+
+* Some files in the libtool package are not owned by libtool.  These
+  files should never be edited here.  These files are:
+	COPYING
+	INSTALL
+	doc/
+	    + fdl.texi
+	libltdl/
+	    + COPYING.LIB
+	libltdl/config/
+	    + compile
+	    + config.guess
+	    + config.sub
+	    + depcomp
+	    + install-sh
+	    + mdate-sh
+	    + missing
+	    + texinfo.tex
+  The ones that are important for a release can be updated by ensuring
+  gnulib is up-to-date, and running 'bootstrap' to recheck the links are
+  correct.
+
+* Changes other than bug fixes must be mentioned in NEWS
+
+
+3. Test Suite
+=============
+
+* When writing tests, make sure the link invocation (first argument to
+  AT_CHECK) is on a single line so that 'testsuite -x' displays the
+  whole thing.  You can use m4_do or '[... ]dnl' to wrap long lines.
+
+* Use
+    make -k check
+  liberally, on as many platforms as you can.  Use as many compilers and
+  linkers you can.  To run old and new testsuites separately, use
+    make check TESTSUITEFLAGS=-V
+    make check-local
+
+* The new Autotest testsuite uses keywords to denote test features:
+    autoconf		needs Autoconf
+    automake		needs Automake
+    libltdl		exercises the 'libltdl' library
+    libtool		exercises the 'libtool' script
+    libtoolize		exercises the 'libtoolize' script
+    recursive		runs the suite recursively, with a modified
+			'libtool' script and with '-k libtool'
+    CXX F77 FC GCJ	exercises a language other than C
+
+
+4. Naming
+=========
+
+* We've adopted the convention that exported Autoconf macros should be
+  named with a leading 'LT_' and be documented in the libtool manual.
+  Internal macros begin with '_LT_' if they are visible to aclocal, or
+  potentially part of an AC_DEFUN/AC_REQUIRE path, or else '_lt_' if
+  they are very low level.  This convention was only introduced just
+  before libtool-2.0, so there may still be exceptions in the existing
+  code.  But all new code should use it.
+
+* All shell variables used internally by libtool's Autoconf macros
+  should be named with the a leading 'lt_' (not that they cannot clash
+  with the '_lt_' macro namespace).
+
+
+5. Using git
+============
+
+* ChangeLog is generated from git log messages, so you have to format
+  the git log carefully.  Use --author for the (first, main) author
+  of changesets from others, and sign patches you have reviewed.  If the
+  changeset has additional authors that need to be mentioned in the
+  generated ChangeLog, then add them to the git log message with:
+
+    Co-authored-by: A U Thor <email@example.com>
+
+  Similarly, if the ChangeLog will need a '(tiny change)' annotation,
+  then you should indicate that in the git log message with:
+
+    Copyright-paperwork-exempt: Yes
+
+  Start the git log message with a short one line summary, then an empty
+  line, then the rest of the log entry.
+
+  If you forgot to annotate correctly in the git log message, or made
+  any other mistake that needs correcting in the distributed ChangeLog
+  file, make an amendment against the SHA1 of the errored commit in
+  $aux_dir/git-log-fix.
+
+* You may find it useful to install the $aux_dir/git-hooks/commit-msg
+  script to .git/hooks in your libtool working directory to help you
+  make the best use of git log message metadata.
+
+* Do not ever rewind the public master branch nor any public release
+  branch on savannah, neither any release tags once they have been
+  published.  Other branches and tags may have different rules.
+
+* Avoid merge commits on the master branch of the public git repository.
+  For unpublished changes in your development tree, it's easiest to
+  rebase against the current master before applying them, this preserves
+  a linear history.
+
+
+6. Editing '.am' Files
+======================
+
+* Always use $(...) and not ${...}
+
+* Use ':', not 'true'.  Use 'exit 1', not 'false'.
+
+* Use '##' comments liberally.  Comment anything even remotely unusual.
+
+* Never use basename or dirname.  Instead use sed.
+
+* Do not use 'cd' within back-quotes, use '$(lt__cd)' instead.
+  Otherwise the directory name may be printed, depending on CDPATH.
+
+* In general, if a loop is required, it should be silent.  Then the body
+  of the loop itself should print each "important" command it runs.
+
+* Use 4 extra spaces to indent continued dependencies.
+
+* One needs to remember that for our whole logic for the different
+  libltdl modes to function correctly, the thing we need to ensure
+  *before the client runs libtoolize*, is that the subpackage case is
+  correct (because all files may be symlinked there).  All others can
+  and will be fixed in the 'libtoolize --ltdl --(non)recursive' stage.
+
+
+7. Editing '.m4' Files
+======================
+
+* Be careful with both 'echo' and '$ECHO'.  As the latter may be one of
+   print -r --
+   printf %s\n
+   func_fallback_echo
+  it may not have more than one argument and its value may not be
+  eval'ed.  However, the argument may start with a '-' and contain
+  backslashes.  As a rule of thumb, use
+   echo ..		for literal (constant) strings without leading
+			hyphen and no backslashes within,
+   $ECHO ".."		otherwise.
+   func_echo_all	when multiple arguments are present, or when
+			placed in an eval'ed variable.
+
+* The Autoconf manual says that giving an empty parameter is equivalent
+  to not giving it at all.  (In particular, the Autoconf manual doesn't
+  explain that "FOO()" is calling macro FOO with one empty parameter.)
+  To prevent misunderstanding, we should use m4_ifval to check whether
+  a parameter is empty, and not $# to check for the number of parameters.
+
+* Any time we add a macro to an older version, lt~obsolete.m4 needs to
+  be updated in all newer versions.
+
+
+8. Abstraction layers in libltdl
+=================================
+
+* The libltdl API uses a layered approach to differentiate internal and
+  external interfaces, among other things.  To keep the abstraction
+  consistent, files in a given layer may only use APIs from files in the
+  lower layers.  The ASCII art boxes below represent this stack, from
+  top to bottom...
+
+* But first, outside of the stack, there is a convenience header that
+  defines the internal interfaces (as evidenced by the 'lt__' prefix to
+  the filename!) shared between implementation files in the stack, that
+  are however not exported to libltdl clients:
+
+	,-------------.
+	|lt__private.h|
+	`-------------'
+
+* The top layer of the stack is the libltdl API proper, which includes
+  the relevant subsystems automatically.  Clients of libltdl need only
+  invoke:
+
+  #include <ltdl.h>
+
+	,------.
+	|ltdl.h|
+	+------+
+	|ltdl.c|
+	`------'
+
+* The next layer is comprised of the subsystems of the exported libltdl
+  API, which are implemented by files that are named with a leading 'lt_'
+  (single underscore!):
+
+	,------------v---------------.
+	| lt_error.h | lt_dlloader.h |
+	+------------+---------------+
+	| lt_error.c | lt_dlloader.c |
+	`------------^---------------'
+
+* The next file is used both by the headers that implement it (in which
+  case its function is to avoid namespace clashes when linking with the
+  GNU C library proper) and is included by code that wants to program
+  against a glibc-like interface, in which case it serves to pull in all
+  the glibc-like functionality used by libltdl with a simple:
+
+    #include <libltdl/lt__glibc.h>
+
+  It consists of a single file:
+
+	,-----------.
+	|lt__glibc.h|
+	`-----------'
+
+* Next to last is the libc abstraction layer, which provides a uniform
+  API to various system libc interfaces that differ between hosts
+  supported by libtool.  Typically, the files that implement this layer
+  begin:
+
+    #if defined(LT_CONFIG_H)
+    #  include LT_CONFIG_H
+    #else
+    #  include <config.h>
+    #endif
+    #include "lt_system.h"
+
+  Or if they are installed headers that must work outside the libtool
+  source tree, simply:
+
+    #include <libltdl/lt_system.h>
+
+  This layer's interface is defined by files that are usually named with
+  a leading 'lt__':
+
+	,--------------v-------------v------------v--------v---------.
+	| lt__dirent.h | lt__alloc.h | lt__strl.h | argz.h | slist.h |
+	+--------------+-------------+------------+--------+---------+
+	| lt__dirent.c | lt__alloc.c | lt__strl.c | argz.c | slist.c |
+	`--------------^-------------^------------^--------^---------'
+
+  (argz.h and slist.h are used independently of libltdl in other projects)
+
+* At the bottom of the stack we have the system abstraction layer,
+  which tries to smooth over the cracks where there are differences
+  between host systems and compilers.  config.h is generated at
+  configure time and is not installed; lt_system.h is an installed
+  file and cannot use macros from config.h:
+
+	,-----------.
+	|../config.h|
+	`-----------'
+
+	,-----------.
+	|lt_system.h|
+	`-----------'
+
+* Tacked on the side of this stack, attached via the lt_dlloader.h
+  definitions are the various implementation modules for run-time module
+  loading: preopen.c, dlopen.c etc.
+
+
+9. Licensing Rules
+==================
+
+GNU Libtool uses 3 different licenses for various of the files distributed
+herein, with several variations on license text.  It is important that
+you use the correct license text in each new file added.  Here are the
+texts along with some notes on when each is appropriate.  Appropriate
+commenting (shell, C etc) and decoration (m4 etc) assumed throughout.
+
+
+
+9.1. Notice preservation
+
+Autoconf macros and files used to generate them need this license, along
+with files such as HACKING, NEWS, README, README.alpha, TODO and
+ChangeLogs:
+
+   Copyright (C) <year list> Free Software Foundation, Inc.
+   Written by <author>, <year>
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.  This file is offered as-is,
+without warranty of any kind.
+
+
+
+9.2. GPL
+
+Everything else in the distribution has the following license text
+unless there is good reason to use one of the other license texts
+below:
+
+   Copyright (C) <year list> Free Software Foundation, Inc.
+   Written by <author>, <year>
+
+   This file is part of GNU Libtool.
+
+GNU Libtool is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation; either version 2 of
+the License, or (at your option) any later version.
+
+GNU Libtool is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with GNU Libtool; see the file COPYING.  If not, a copy
+can be downloaded from  http://www.gnu.org/licenses/gpl.html,
+or obtained by writing to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+
+
+9.3. GPL with self extracting version
+
+Some of the sources built atop the options-parser framework use
+func_version() to extract their --version output from the copyright
+block.  Those files also need the --version copyright text paragraph as
+follows:
+
+   <program name> (GNU @PACKAGE@) <version number>
+   Written by <author> <email address>.
+
+   This file is part of <parent package name>.
+
+Copyright (C) <year list> Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+<program name> is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+<program name> is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with <program name>; see the file COPYING.  If not, a copy
+can be downloaded from http://www.gnu.org/licenses/gpl.html,
+or obtained by writing to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+
+
+9.4. GPL with self extracting version and Libtool exception clause
+
+Although the libtool script is generated from 'ltmain.in' according
+to the rules in the preceding subsection, it also needs the Libtool
+exception clause so that it can be redistributed by other projects
+that use libtool:
+
+  <program name> (GNU @PACKAGE@@TIMESTAMP@) <version number>
+  Written by <author> <email address>.
+
+  This file is part of GNU Libtool.
+
+Copyright (C) <year list> Free Software Foundation, Inc.
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+<program name> is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+As a special exception to the GNU General Public License,
+if you distribute this file as part of a program or library that
+is built using GNU Libtool, you may include this file under the
+same distribution terms that you use for the rest of that program.
+
+<program name> is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with <program name>; see the file COPYING.  If not, a copy
+can be downloaded from http://www.gnu.org/licenses/gpl.html,
+or obtained by writing to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+
+
+9.5. LGPL with Libtool exception clause
+
+Finally, not only is Libltdl is LGPLed, but it is routinely
+redistributed inside projects that use it, so its sources need to use
+the following license text citing the LGPL along with Libtool's special
+exception clause:
+
+   Copyright (C) <year list> Free Software Foundation, Inc.
+   Written by <author>, <year>
+
+   NOTE: The canonical source of this file is maintained with the
+   GNU Libtool package.  Report bugs to bug-libtool@gnu.org.
+
+GNU Libltdl is free software; you can redistribute it and/or
+modify it under the terms of the GNU Lesser General Public
+License as published by the Free Software Foundation; either
+version 2 of the License, or (at your option) any later version.
+
+As a special exception to the GNU Lesser General Public License,
+if you distribute this file as part of a program or library that
+is built using GNU Libtool, you may include this file under the
+same distribution terms that you use for the rest of that program.
+
+GNU Libltdl is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public
+License along with GNU Libltdl; see the file COPYING.LIB.  If not, a
+copy can be downloaded from  http://www.gnu.org/licenses/lgpl.html,
+or obtained by writing to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
+
+-- 
+  Copyright (C) 2004-2008, 2010-2018 Free Software Foundation, Inc.
+  Written by Gary V. Vaughan, 2004
+
+  This file is part of GNU Libtool.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.  This file is offered as-is,
+without warranty of any kind.
+
+Local Variables:
+mode: text
+fill-column: 72
+End:
+vim:tw=72
