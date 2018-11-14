@@ -32,7 +32,7 @@ LOCAL_CFLAGS += -O3 -funroll-loops -finline-functions
 
 LOCAL_ARM_MODE := arm
 
-LOCAL_MODULE := libFLAC
+LOCAL_MODULE := libFLAC_pulse
 
 LOCAL_MODULE_TAGS := optional
 

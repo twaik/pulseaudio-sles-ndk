@@ -1,31 +1,9 @@
 PULSEAUDIO_PATH := $(call my-dir)
-PULSE_CFLAGS := -std=gnu11 -DHAVE_CONFIG_H -DPA_BUILDDIR=\"/\" -DLT_DEBUG_LOADERS
+
+PULSEAUDIO_DATADIR ?= /system/etc/pulse
+PULSE_CFLAGS := -std=gnu11 -DHAVE_CONFIG_H -DPA_BUILDDIR=\"$(PULSEAUDIO_PATH)\" -DPULSEAUDIO_DATADIR=\"$(PULSEAUDIO_DATADIR)\"
 
 LOCAL_PATH := $(PULSEAUDIO_PATH)/src
-include $(CLEAR_VARS)
-
-LOCAL_MODULE := pulseaudio
-LOCAL_CFLAGS := $(PULSE_CFLAGS)
-LOCAL_CXXFLAGS := -std=c++11
-
-ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
-LOCAL_CFLAGS += -DHAVE_ARMV6=1
-endif
-
-LOCAL_C_INCLUDES := $(PULSEAUDIO_PATH) $(LOCAL_PATH)
-LOCAL_SRC_FILES := \
-		daemon/caps.c \
-		daemon/cmdline.c \
-		daemon/cpulimit.c \
-		daemon/daemon-conf.c \
-		daemon/dumpmodules.c \
-		daemon/ltdl-bind-now.c \
-		daemon/main.c \
-		preloaded_symbols.c
-
-LOCAL_STATIC_LIBRARIES := libltdl
-LOCAL_SHARED_LIBRARIES := libpulse  libpulsecore libpulsecommon
-include $(BUILD_EXECUTABLE)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := libpulsecommon
@@ -112,7 +90,7 @@ LOCAL_SRC_FILES += \
 		pulsecore/semaphore-posix.c \
 		pulsecore/thread-posix.c
 
-LOCAL_STATIC_LIBRARIES := libsndfile libogg libltdl
+LOCAL_STATIC_LIBRARIES := libsndfile_pulse libogg_pulse libltdl_pulse
 LOCAL_ALLOW_UNDEFINED_SYMBOLS := true
 include $(BUILD_SHARED_LIBRARY)
 
@@ -180,7 +158,7 @@ LOCAL_SRC_FILES :=\
 		pulsecore/ffmpeg/resample2.c \
 		pulsecore/protocol-native.c
 
-LOCAL_STATIC_LIBRARIES := libsndfile libogg libltdl
+LOCAL_STATIC_LIBRARIES := libsndfile_pulse libogg_pulse libltdl_pulse
 LOCAL_SHARED_LIBRARIES := libpulsecommon
 LOCAL_ALLOW_UNDEFINED_SYMBOLS := true
 include $(BUILD_SHARED_LIBRARY)
@@ -226,12 +204,48 @@ LOCAL_SHARED_LIBRARIES := libpulsecommon
 include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
+
+LOCAL_MODULE := pulseaudio
+LOCAL_CFLAGS := $(PULSE_CFLAGS)
+LOCAL_CXXFLAGS := -std=c++11
+
+ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)
+LOCAL_CFLAGS += -DHAVE_ARMV6=1
+endif
+
+LOCAL_C_INCLUDES := $(PULSEAUDIO_PATH) $(LOCAL_PATH)
+LOCAL_SRC_FILES := \
+		daemon/caps.c \
+		daemon/cmdline.c \
+		daemon/cpulimit.c \
+		daemon/daemon-conf.c \
+		daemon/dumpmodules.c \
+		daemon/ltdl-bind-now.c \
+		daemon/main.c \
+		preloaded_symbols.c
+
+LOCAL_STATIC_LIBRARIES := libltdl_pulse
+LOCAL_SHARED_LIBRARIES := libpulse  libpulsecore libpulsecommon
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := pacat
+LOCAL_CFLAGS := $(PULSE_CFLAGS)
+LOCAL_CXXFLAGS := -std=c++11
+LOCAL_C_INCLUDES := $(PULSEAUDIO_PATH) $(LOCAL_PATH)
+LOCAL_SRC_FILES := utils/pacat.c
+
+LOCAL_SHARED_LIBRARIES := libpulse libpulsecore libpulsecommon
+include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
 LOCAL_MODULE := module-sles-sink
 LOCAL_MODULE_FILENAME := $(LOCAL_MODULE)
 LOCAL_CFLAGS := $(PULSE_CFLAGS)
 LOCAL_C_INCLUDES := $(PULSEAUDIO_PATH) $(LOCAL_PATH)
 LOCAL_SRC_FILES := modules/$(LOCAL_MODULE).c
-LOCAL_STATIC_LIBRARIES := libltdl
+LOCAL_STATIC_LIBRARIES := libltdl_pulse
 LOCAL_SHARED_LIBRARIES := libpulsecore libpulsecommon libpulse
 LOCAL_LDFLAGS := -lOpenSLES
 include $(BUILD_SHARED_LIBRARY)
@@ -242,6 +256,6 @@ LOCAL_MODULE_FILENAME := $(LOCAL_MODULE)
 LOCAL_CFLAGS := $(PULSE_CFLAGS) -DUSE_TCP_SOCKETS -DUSE_PROTOCOL_NATIVE -DPA_MODULE_NAME=module_native_protocol_tcp
 LOCAL_C_INCLUDES := $(PULSEAUDIO_PATH) $(LOCAL_PATH)
 LOCAL_SRC_FILES := modules/module-protocol-stub.c
-LOCAL_STATIC_LIBRARIES := libltdl
+LOCAL_STATIC_LIBRARIES := libltdl_pulse
 LOCAL_SHARED_LIBRARIES := libpulsecore libpulsecommon libpulse
 include $(BUILD_SHARED_LIBRARY)

@@ -611,22 +611,22 @@
 #define PA_ACCESS_GROUP "pulse-access"
 
 /* Location of pulseaudio binary */
-#define PA_BINARY "/armeabi-v7a/pulseaudio"
+#define PA_BINARY PULSEAUDIO_DATADIR "/bin/pulseaudio"
 
 /* The CFLAGS used during compilation */
 #define PA_CFLAGS ""
 
 /* Location of configuration files */
-#define PA_DEFAULT_CONFIG_DIR "/usr/etc/pulse"
+#define PA_DEFAULT_CONFIG_DIR PULSEAUDIO_DATADIR "/etc/pulse"
 
 /* Modules dir */
-#define PA_DLSEARCHPATH "/usr/lib/pulse-11.1/modules"
+#define PA_DLSEARCHPATH PULSEAUDIO_DATADIR "/lib/pulse/modules"
 
 /* PulseAudio include dir */
 #define PA_INCDIR "/usr/include"
 
 /* PulseAudio library dir */
-#define PA_LIBDIR "/usr/lib"
+#define PA_LIBDIR PULSEAUDIO_DATADIR "/lib"
 
 /* D-Bus machine-id file */
 #define PA_MACHINE_ID "/usr/etc/machine-id"
@@ -644,10 +644,10 @@
 #define PA_SYSTEM_GROUP "pulse"
 
 /* System runtime dir */
-#define PA_SYSTEM_RUNTIME_PATH "/usr/var/run/pulse"
+#define PA_SYSTEM_RUNTIME_PATH PULSEAUDIO_DATADIR "/var/run/pulse"
 
 /* System state dir */
-#define PA_SYSTEM_STATE_PATH "/usr/var/lib/pulse"
+#define PA_SYSTEM_STATE_PATH PULSEAUDIO_DATADIR "/var/lib/pulse"
 
 /* User for running the PulseAudio system daemon */
 #define PA_SYSTEM_USER "pulse"

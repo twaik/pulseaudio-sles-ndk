@@ -3,7 +3,7 @@ LOCAL_PATH := $(LIBSNDFILE_PATH)/src
 
 include $(CLEAR_VARS)
 
-LOCAL_MODULE := libsndfile
+LOCAL_MODULE := libsndfile_pulse
 LOCAL_CFLAGS := -std=gnu11 -DHAVE_CONFIG_H -w
 LOCAL_SRC_FILES := sndfile.c aiff.c au.c avr.c caf.c dwd.c flac.c g72x.c htk.c ircam.c \
 		macos.c mat4.c mat5.c nist.c paf.c pvf.c raw.c rx2.c sd2.c \
@@ -25,6 +25,6 @@ LOCAL_SRC_FILES += ALAC/ALACBitUtilities.c ALAC/ag_dec.c \
 
 LOCAL_C_INCLUDES := $(LIBSNDFILE_PATH) $(LOCAL_PATH)
 LOCAL_EXPORT_C_INCLUDES := $(LOCAL_PATH)
-LOCAL_STATIC_LIBRARIES := libFLAC libogg libvorbis
+LOCAL_STATIC_LIBRARIES := libFLAC_pulse libogg_pulse libvorbis_pulse
 
 include $(BUILD_STATIC_LIBRARY)

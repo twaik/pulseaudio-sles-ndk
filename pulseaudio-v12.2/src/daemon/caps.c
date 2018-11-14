@@ -92,8 +92,10 @@ void pa_drop_caps(void) {
 #error "Don't know how to do capabilities on your system.  Please send a patch."
 #endif /* __linux__ */
 #else /* HAVE_SYS_CAPABILITY_H */
+#ifndef ANDROID
     pa_log_warn("Normally all extra capabilities would be dropped now, but "
                 "that's impossible because PulseAudio was built without "
                 "capabilities support.");
+#endif
 #endif
 }
